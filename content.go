@@ -128,6 +128,7 @@ func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFil
 			if err != io.EOF {
 				return nil, err
 			}
+			sb.Write(buf[:n])
 			break
 		}
 
