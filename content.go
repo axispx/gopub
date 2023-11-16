@@ -2,7 +2,6 @@ package gopub
 
 import (
 	"io"
-	"io/ioutil"
 	"path"
 	"strings"
 )
@@ -90,19 +89,22 @@ type LocalByteContentFile struct {
 }
 
 func newLocalByteContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (*LocalByteContentFile, error) {
-	rc, err := findFileInZip(er.zipReader, contentFilePath)
+	rc, size, err := findFileInZip(er.zipReader, contentFilePath)
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
 
-	bytes, err := ioutil.ReadAll(rc)
+	byteContent := make([]byte, size)
+
+	_, err = rc.Read(byteContent)
 	if err != nil {
-		return nil, err
+		if err != io.EOF {
+			return nil, err
+		}
 	}
 
 	return &LocalByteContentFile{
-		Content:     bytes,
+		Content:     byteContent,
 		ContentFile: contentFile,
 	}, nil
 }
@@ -113,7 +115,7 @@ type LocalTextContentFile struct {
 }
 
 func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (*LocalTextContentFile, error) {
-	rc, err := findFileInZip(er.zipReader, contentFilePath)
+	rc, size, err := findFileInZip(er.zipReader, contentFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +123,7 @@ func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFil
 
 	var sb strings.Builder
 
-	buf := make([]byte, 1024)
+	buf := make([]byte, size)
 	for {
 		n, err := rc.Read(buf)
 		if err != nil {
@@ -132,7 +134,7 @@ func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFil
 			break
 		}
 
-		sb.Write(buf[:n])
+		sb.Write(buf)
 	}
 
 	return &LocalTextContentFile{

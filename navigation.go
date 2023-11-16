@@ -202,7 +202,7 @@ type NavigationDocument struct {
 }
 
 func readNavigation(zf *zip.ReadCloser, filePath string) (*NavigationDocument, error) {
-	rc, err := findFileInZip(zf, filePath)
+	rc, _, err := findFileInZip(zf, filePath)
 	if err != nil {
 		return nil, err
 	}

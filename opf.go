@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path"
 	"strings"
 )
@@ -77,24 +76,28 @@ type Manifest struct {
 }
 
 func (m *Manifest) getCoverImage(r *zip.ReadCloser) ([]byte, error) {
-	var image []byte
 
 	for _, item := range m.Items {
 		if strings.Contains(item.Properties, "cover-image") {
-			rc, err := findFileInZip(r, path.Join("EPUB", item.Href))
+			rc, size, err := findFileInZip(r, path.Join("EPUB", item.Href))
 			if err != nil {
 				return nil, err
 			}
 			defer rc.Close()
 
-			image, err = ioutil.ReadAll(rc)
+			image := make([]byte, size)
+			_, err = rc.Read(image)
 			if err != nil {
-				return nil, err
+				if err != io.EOF {
+					return nil, err
+				}
 			}
+
+			return image, nil
 		}
 	}
 
-	return image, nil
+	return nil, fmt.Errorf("cover image not found")
 }
 
 func (m *Manifest) getNavigationFilePath() (string, error) {
@@ -155,7 +158,7 @@ type Package struct {
 }
 
 func ReadPackage(r *zip.ReadCloser, rootfilePath string) (*Package, error) {
-	rc, err := findFileInZip(r, rootfilePath)
+	rc, _, err := findFileInZip(r, rootfilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -211,11 +214,16 @@ func (s *schema) getReadingOrder(er *epubReader) ([]*LocalTextContentFile, error
 	return readingOrder, nil
 }
 
-func findFileInZip(r *zip.ReadCloser, filename string) (io.ReadCloser, error) {
+func findFileInZip(r *zip.ReadCloser, filename string) (io.ReadCloser, uint64, error) {
 	for _, f := range r.File {
 		if f.Name == filename {
-			return f.Open()
+			rc, err := f.Open()
+			if err != nil {
+				return nil, 0, err
+			}
+
+			return rc, f.UncompressedSize64, nil
 		}
 	}
-	return nil, fmt.Errorf("file not found in EPUB: %s", filename)
+	return nil, 0, fmt.Errorf("file not found in EPUB: %s", filename)
 }
