@@ -1,6 +1,7 @@
 package gopub
 
 import (
+	"io"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -118,13 +119,23 @@ func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFil
 	}
 	defer rc.Close()
 
-	bytes, err := ioutil.ReadAll(rc)
-	if err != nil {
-		return nil, err
+	var sb strings.Builder
+
+	buf := make([]byte, 1024)
+	for {
+		n, err := rc.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+			break
+		}
+
+		sb.Write(buf[:n])
 	}
 
 	return &LocalTextContentFile{
-		Content:     string(bytes),
+		Content:     sb.String(),
 		ContentFile: contentFile,
 	}, nil
 }

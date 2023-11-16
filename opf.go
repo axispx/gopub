@@ -77,6 +77,7 @@ func (m *Manifest) getCoverImage(r *zip.ReadCloser) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
+			defer rc.Close()
 
 			image, err = ioutil.ReadAll(rc)
 			if err != nil {
