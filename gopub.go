@@ -85,7 +85,7 @@ func ReadBook(filePath string) (*Book, error) {
 		Title:        schema.pkg.Metadata.Titles[0].Value,
 		Author:       schema.pkg.Metadata.Creators[0].Value,
 		Authors:      schema.pkg.Metadata.getCreators(),
-		Description:  schema.pkg.Metadata.Titles[1].Value,
+		Description:  schema.pkg.Metadata.getFirstOrDefaultDescription(),
 		CoverImage:   coverImage,
 		ReadingOrder: readingOrder,
 		Navigation:   navDoc.Navigations,

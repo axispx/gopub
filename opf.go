@@ -52,6 +52,14 @@ func (m *Metadata) getCreators() []string {
 	return creators
 }
 
+func (m *Metadata) getFirstOrDefaultDescription() string {
+	if len(m.Descriptions) > 0 {
+		return m.Descriptions[0]
+	} else {
+		return ""
+	}
+}
+
 type ManifestItem struct {
 	ID                string `xml:"id,attr"`
 	Href              string `xml:"href,attr"`
@@ -102,7 +110,7 @@ func (m *Manifest) getNavigationFilePath() (string, error) {
 type ItemRef struct {
 	ID         string `xml:"id,attr"`
 	IdRef      string `xml:"idref,attr"`
-	Linear     bool   `xml:"linear,attr"`
+	Linear     string `xml:"linear,attr"`
 	Properties string `xml:"properties"`
 }
 
