@@ -88,7 +88,7 @@ type LocalByteContentFile struct {
 	ContentFile
 }
 
-func newLocalByteContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (LocalByteContentFile, error) {
+func newLocalByteContentFile(er epubReader, contentFile ContentFile, contentFilePath string) (LocalByteContentFile, error) {
 	var localByteContentFile LocalByteContentFile
 
 	rc, size, err := findFileInZip(er.zipReader, contentFilePath)
@@ -117,7 +117,7 @@ type LocalTextContentFile struct {
 	ContentFile
 }
 
-func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (LocalTextContentFile, error) {
+func newLocalTextContentFile(er epubReader, contentFile ContentFile, contentFilePath string) (LocalTextContentFile, error) {
 	var localTextContentFile LocalTextContentFile
 
 	rc, size, err := findFileInZip(er.zipReader, contentFilePath)
@@ -151,7 +151,7 @@ type Content struct {
 	AllFiles           []LocalContentFile
 }
 
-func readContent(sc schema, er *epubReader) (Content, error) {
+func readContent(sc schema, er epubReader) (Content, error) {
 	var content Content
 
 	var cover LocalByteContentFile

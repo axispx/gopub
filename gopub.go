@@ -10,7 +10,7 @@ import (
 
 type epubReader struct {
 	zipReader *zip.ReadCloser
-	options   *epubReaderOptions
+	options   epubReaderOptions
 }
 
 type epubReaderOptions struct {
@@ -43,9 +43,9 @@ func ReadBook(filePath string) (Book, error) {
 		return book, err
 	}
 
-	reader := &epubReader{
+	reader := epubReader{
 		zipReader: zf,
-		options: &epubReaderOptions{
+		options: epubReaderOptions{
 			rootFilePath: container.FullPath,
 		},
 	}

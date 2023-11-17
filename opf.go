@@ -178,7 +178,7 @@ type schema struct {
 	contentDirectoryPath string
 }
 
-func readSchema(er *epubReader) (schema, error) {
+func readSchema(er epubReader) (schema, error) {
 	var schema schema
 
 	pkg, err := ReadPackage(er.zipReader, er.options.rootFilePath)
@@ -192,7 +192,7 @@ func readSchema(er *epubReader) (schema, error) {
 	return schema, nil
 }
 
-func (s schema) getReadingOrder(er *epubReader) ([]LocalTextContentFile, error) {
+func (s schema) getReadingOrder(er epubReader) ([]LocalTextContentFile, error) {
 	var readingOrder []LocalTextContentFile
 
 	for _, itemRef := range s.pkg.Spine.ItemRefs {
