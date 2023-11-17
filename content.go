@@ -95,6 +95,7 @@ func newLocalByteContentFile(er *epubReader, contentFile ContentFile, contentFil
 	if err != nil {
 		return localByteContentFile, err
 	}
+	defer rc.Close()
 
 	byteContent := make([]byte, size)
 
