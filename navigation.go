@@ -179,7 +179,7 @@ type Navigation struct {
 	Ol       NavOl   `xml:"ol"`
 }
 
-func (n *Navigation) getHeader() string {
+func (n Navigation) getHeader() string {
 	if n.H1 != "" {
 		return n.H1
 	} else if n.H2 != "" {
@@ -198,17 +198,19 @@ func (n *Navigation) getHeader() string {
 type NavigationDocument struct {
 	FilePath    string
 	Title       string
-	Navigations []*Navigation
+	Navigations []Navigation
 }
 
-func readNavigation(zf *zip.ReadCloser, filePath string) (*NavigationDocument, error) {
+func readNavigation(zf *zip.ReadCloser, filePath string) (NavigationDocument, error) {
+	var navDoc NavigationDocument
+
 	rc, _, err := findFileInZip(zf, filePath)
 	if err != nil {
-		return nil, err
+		return navDoc, err
 	}
 	defer rc.Close()
 
-	var navs []*Navigation
+	var navs []Navigation
 	var title string
 
 	decoder := xml.NewDecoder(rc)
@@ -219,7 +221,7 @@ func readNavigation(zf *zip.ReadCloser, filePath string) (*NavigationDocument, e
 		}
 
 		if err != nil {
-			return nil, err
+			return navDoc, err
 		}
 
 		switch se := token.(type) {
@@ -228,25 +230,23 @@ func readNavigation(zf *zip.ReadCloser, filePath string) (*NavigationDocument, e
 				var nav Navigation
 				err := decoder.DecodeElement(&nav, &se)
 				if err != nil {
-					return nil, err
+					return navDoc, err
 				}
 
-				navs = append(navs, &nav)
+				navs = append(navs, nav)
 			} else if se.Name.Local == "title" {
 				err := decoder.DecodeElement(&title, &se)
 				if err != nil {
-					return nil, err
+					return navDoc, err
 				}
 			}
 		}
 
 	}
 
-	navDoc := &NavigationDocument{
-		FilePath:    filePath,
-		Title:       title,
-		Navigations: navs,
-	}
+	navDoc.FilePath = filePath
+	navDoc.Title = title
+	navDoc.Navigations = navs
 
 	return navDoc, nil
 }

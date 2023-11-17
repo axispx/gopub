@@ -88,10 +88,12 @@ type LocalByteContentFile struct {
 	ContentFile
 }
 
-func newLocalByteContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (*LocalByteContentFile, error) {
+func newLocalByteContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (LocalByteContentFile, error) {
+	var localByteContentFile LocalByteContentFile
+
 	rc, size, err := findFileInZip(er.zipReader, contentFilePath)
 	if err != nil {
-		return nil, err
+		return localByteContentFile, err
 	}
 
 	byteContent := make([]byte, size)
@@ -99,14 +101,14 @@ func newLocalByteContentFile(er *epubReader, contentFile ContentFile, contentFil
 	_, err = rc.Read(byteContent)
 	if err != nil {
 		if err != io.EOF {
-			return nil, err
+			return localByteContentFile, err
 		}
 	}
 
-	return &LocalByteContentFile{
-		Content:     byteContent,
-		ContentFile: contentFile,
-	}, nil
+	localByteContentFile.Content = byteContent
+	localByteContentFile.ContentFile = contentFile
+
+	return localByteContentFile, nil
 }
 
 type LocalTextContentFile struct {
@@ -114,55 +116,51 @@ type LocalTextContentFile struct {
 	ContentFile
 }
 
-func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (*LocalTextContentFile, error) {
+func newLocalTextContentFile(er *epubReader, contentFile ContentFile, contentFilePath string) (LocalTextContentFile, error) {
+	var localTextContentFile LocalTextContentFile
+
 	rc, size, err := findFileInZip(er.zipReader, contentFilePath)
 	if err != nil {
-		return nil, err
+		return localTextContentFile, err
 	}
 	defer rc.Close()
 
-	var sb strings.Builder
-
 	buf := make([]byte, size)
-	for {
-		n, err := rc.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			sb.Write(buf[:n])
-			break
+	_, err = rc.Read(buf)
+	if err != nil {
+		if err != io.EOF {
+			return localTextContentFile, err
 		}
-
-		sb.Write(buf)
 	}
 
-	return &LocalTextContentFile{
-		Content:     sb.String(),
-		ContentFile: contentFile,
-	}, nil
+	localTextContentFile.Content = string(buf)
+	localTextContentFile.ContentFile = contentFile
+
+	return localTextContentFile, nil
 }
 
 type Content struct {
-	Cover              *LocalByteContentFile
-	NavigationHtmlFile *LocalTextContentFile
-	Html               []*LocalTextContentFile
-	Css                []*LocalTextContentFile
-	Images             []*LocalByteContentFile
-	Fonts              []*LocalByteContentFile
-	Audios             []*LocalByteContentFile
-	AllFiles           []*LocalContentFile
+	Cover              LocalByteContentFile
+	NavigationHtmlFile LocalTextContentFile
+	Html               []LocalTextContentFile
+	Css                []LocalTextContentFile
+	Images             []LocalByteContentFile
+	Fonts              []LocalByteContentFile
+	Audios             []LocalByteContentFile
+	AllFiles           []LocalContentFile
 }
 
-func readContent(sc *schema, er *epubReader) (*Content, error) {
-	var cover *LocalByteContentFile
-	var navigationHtmlFile *LocalTextContentFile
-	var htmlLocal []*LocalTextContentFile
-	var cssLocal []*LocalTextContentFile
-	var imagesLocal []*LocalByteContentFile
-	var fontsLocal []*LocalByteContentFile
-	var audiosLocal []*LocalByteContentFile
-	var allFilesLocal []*LocalContentFile
+func readContent(sc schema, er *epubReader) (Content, error) {
+	var content Content
+
+	var cover LocalByteContentFile
+	var navigationHtmlFile LocalTextContentFile
+	var htmlLocal []LocalTextContentFile
+	var cssLocal []LocalTextContentFile
+	var imagesLocal []LocalByteContentFile
+	var fontsLocal []LocalByteContentFile
+	var audiosLocal []LocalByteContentFile
+	var allFilesLocal []LocalContentFile
 
 	for _, item := range sc.pkg.Manifest.Items {
 		href := item.Href
@@ -179,7 +177,7 @@ func readContent(sc *schema, er *epubReader) (*Content, error) {
 			ContentFileType: ContentFileTypeText,
 		}
 
-		localContentFile := &LocalContentFile{
+		localContentFile := LocalContentFile{
 			FilePath:    contentFilePath,
 			ContentFile: contentFile,
 		}
@@ -188,13 +186,13 @@ func readContent(sc *schema, er *epubReader) (*Content, error) {
 		case ContentTypeXhtml, ContentTypeCss, ContentTypeOeb1Document, ContentTypeOeb1Css, ContentTypeXml, ContentTypeDtb, ContentTypeDtbNcx, ContentTypeSmil, ContentTypeScript:
 			localTextContentFile, err := newLocalTextContentFile(er, contentFile, contentFilePath)
 			if err != nil {
-				return nil, err
+				return content, err
 			}
 
 			if contentType == ContentTypeXhtml {
 				htmlLocal = append(htmlLocal, localTextContentFile)
 
-				if navigationHtmlFile == nil && item.Properties != "" && strings.Contains(item.Properties, "nav") {
+				if navigationHtmlFile.Content == "" && item.Properties != "" && strings.Contains(item.Properties, "nav") {
 					navigationHtmlFile = localTextContentFile
 				}
 			} else if contentType == ContentTypeCss {
@@ -205,7 +203,7 @@ func readContent(sc *schema, er *epubReader) (*Content, error) {
 		default:
 			localByteContentFile, err := newLocalByteContentFile(er, contentFile, contentFilePath)
 			if err != nil {
-				return nil, err
+				return content, err
 			}
 
 			switch contentType {
@@ -226,16 +224,14 @@ func readContent(sc *schema, er *epubReader) (*Content, error) {
 
 	}
 
-	content := &Content{
-		Cover:              cover,
-		NavigationHtmlFile: navigationHtmlFile,
-		Html:               htmlLocal,
-		Css:                cssLocal,
-		Images:             imagesLocal,
-		Fonts:              fontsLocal,
-		Audios:             audiosLocal,
-		AllFiles:           allFilesLocal,
-	}
+	content.Cover = cover
+	content.NavigationHtmlFile = navigationHtmlFile
+	content.Html = htmlLocal
+	content.Css = cssLocal
+	content.Images = imagesLocal
+	content.Fonts = fontsLocal
+	content.Audios = audiosLocal
+	content.AllFiles = allFilesLocal
 
 	return content, nil
 }

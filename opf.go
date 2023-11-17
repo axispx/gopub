@@ -42,7 +42,7 @@ type Metadata struct {
 	Types        []string     `xml:"types"`
 }
 
-func (m *Metadata) getCreators() []string {
+func (m Metadata) getCreators() []string {
 	var creators []string
 	for _, creator := range m.Creators {
 		creators = append(creators, creator.Value)
@@ -51,7 +51,7 @@ func (m *Metadata) getCreators() []string {
 	return creators
 }
 
-func (m *Metadata) getFirstOrDefaultDescription() string {
+func (m Metadata) getFirstOrDefaultDescription() string {
 	if len(m.Descriptions) > 0 {
 		return m.Descriptions[0]
 	} else {
@@ -75,8 +75,7 @@ type Manifest struct {
 	Items []ManifestItem `xml:"item"`
 }
 
-func (m *Manifest) getCoverImage(r *zip.ReadCloser) ([]byte, error) {
-
+func (m Manifest) getCoverImage(r *zip.ReadCloser) ([]byte, error) {
 	for _, item := range m.Items {
 		if strings.Contains(item.Properties, "cover-image") {
 			rc, size, err := findFileInZip(r, path.Join("EPUB", item.Href))
@@ -100,7 +99,7 @@ func (m *Manifest) getCoverImage(r *zip.ReadCloser) ([]byte, error) {
 	return nil, fmt.Errorf("cover image not found")
 }
 
-func (m *Manifest) getNavigationFilePath() (string, error) {
+func (m Manifest) getNavigationFilePath() (string, error) {
 	for _, item := range m.Items {
 		if strings.Contains(item.Properties, "nav") {
 			return item.Href, nil
@@ -157,43 +156,44 @@ type Package struct {
 	Collections      []Collection `xml:"collection"`
 }
 
-func ReadPackage(r *zip.ReadCloser, rootfilePath string) (*Package, error) {
+func ReadPackage(r *zip.ReadCloser, rootfilePath string) (Package, error) {
+	var pkg Package
+
 	rc, _, err := findFileInZip(r, rootfilePath)
 	if err != nil {
-		return nil, err
+		return pkg, err
 	}
 	defer rc.Close()
 
-	var pkg *Package
 	if err := xml.NewDecoder(rc).Decode(&pkg); err != nil {
-		return nil, err
+		return pkg, err
 	}
 
 	return pkg, nil
 }
 
 type schema struct {
-	pkg                  *Package
-	navigationDocument   *NavigationDocument
+	pkg                  Package
+	navigationDocument   NavigationDocument
 	contentDirectoryPath string
 }
 
-func readSchema(er *epubReader) (*schema, error) {
+func readSchema(er *epubReader) (schema, error) {
 	var schema schema
 
 	pkg, err := ReadPackage(er.zipReader, er.options.rootFilePath)
 	if err != nil {
-		return nil, err
+		return schema, err
 	}
 
 	schema.pkg = pkg
 	schema.contentDirectoryPath = path.Dir(er.options.rootFilePath)
 
-	return &schema, nil
+	return schema, nil
 }
 
-func (s *schema) getReadingOrder(er *epubReader) ([]*LocalTextContentFile, error) {
-	var readingOrder []*LocalTextContentFile
+func (s schema) getReadingOrder(er *epubReader) ([]LocalTextContentFile, error) {
+	var readingOrder []LocalTextContentFile
 
 	for _, itemRef := range s.pkg.Spine.ItemRefs {
 		for _, manifestItem := range s.pkg.Manifest.Items {
