@@ -213,8 +213,8 @@ func readNavigation(zf *zip.ReadCloser, filePath string) (NavigationDocument, er
 	var navs []Navigation
 	var title string
 
-	decoder := xml.NewDecoder(rc)
 	for {
+		decoder := xml.NewDecoder(rc)
 		token, err := decoder.Token()
 		if token == nil {
 			break
