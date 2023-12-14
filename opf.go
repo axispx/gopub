@@ -85,7 +85,7 @@ func (m Manifest) getCoverImage(r *zip.ReadCloser) ([]byte, error) {
 			defer rc.Close()
 
 			image := make([]byte, size)
-			_, err = rc.Read(image)
+			_, err = io.ReadFull(rc, image)
 			if err != nil {
 				if err != io.EOF {
 					return nil, err

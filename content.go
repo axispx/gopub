@@ -99,7 +99,7 @@ func newLocalByteContentFile(er epubReader, contentFile ContentFile, contentFile
 
 	byteContent := make([]byte, size)
 
-	_, err = rc.Read(byteContent)
+	_, err = io.ReadFull(rc, byteContent)
 	if err != nil {
 		if err != io.EOF {
 			return localByteContentFile, err
@@ -127,7 +127,7 @@ func newLocalTextContentFile(er epubReader, contentFile ContentFile, contentFile
 	defer rc.Close()
 
 	buf := make([]byte, size)
-	_, err = rc.Read(buf)
+	_, err = io.ReadFull(rc, buf)
 	if err != nil {
 		if err != io.EOF {
 			return localTextContentFile, err
@@ -191,10 +191,10 @@ func readContent(sc schema, er epubReader) (Content, error) {
 			}
 
 			if contentType == ContentTypeXhtml {
-				htmlLocal = append(htmlLocal, localTextContentFile)
-
 				if navigationHtmlFile.Content == "" && item.Properties != "" && strings.Contains(item.Properties, "nav") {
 					navigationHtmlFile = localTextContentFile
+				} else {
+					htmlLocal = append(htmlLocal, localTextContentFile)
 				}
 			} else if contentType == ContentTypeCss {
 				cssLocal = append(cssLocal, localTextContentFile)
@@ -209,10 +209,10 @@ func readContent(sc schema, er epubReader) (Content, error) {
 
 			switch contentType {
 			case ContentTypeImageGif, ContentTypeImageJpeg, ContentTypeImagePng, ContentTypeImageSvg, ContentTypeImageWebp:
-				imagesLocal = append(imagesLocal, localByteContentFile)
-
 				if strings.Contains(item.Properties, "cover-image") {
 					cover = localByteContentFile
+				} else {
+					imagesLocal = append(imagesLocal, localByteContentFile)
 				}
 			case ContentTypeFontTruetype, ContentTypeFontOpentype, ContentTypeFontSfnt, ContentTypeFontWoff, ContentTypeFontWoff2:
 				fontsLocal = append(fontsLocal, localByteContentFile)
